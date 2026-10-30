@@ -5,6 +5,16 @@
     android:layout_height="match_parent"
     android:background="#FF000000">
 
+    <!-- Optional photo: files/wallpaper.jpg in the app's external files dir, see loadWallpaper(). -->
+    <ImageView
+        android:id="@+id/wallpaper"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:alpha="0.6"
+        android:importantForAccessibility="no"
+        android:visibility="gone" />
+
     <!-- Ambient glow in the colour of the focused dock app. -->
     <View
         android:id="@+id/ambient"

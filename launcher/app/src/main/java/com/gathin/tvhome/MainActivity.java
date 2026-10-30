@@ -189,6 +189,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onResume() {
         super.onResume();
+        loadWallpaper();
         glassShown = false;
         glass.setAlpha(0f);
         heroShown = false;
@@ -505,6 +506,37 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         panel.animate().alpha(1f).scaleY(1f).translationY(0f).setDuration(220)
                 .setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).start();
         rows.getChildAt(0).requestFocus();
+    }
+
+    private long wallpaperStamp = -1;
+
+    /**
+     * Shows /sdcard/Android/data/com.gathin.tvhome/files/wallpaper.jpg when present, so a new photo is
+     * an `adb push` away instead of a rebuild. Decoded only when the file changes, at most 1920 wide
+     * and in RGB_565, since the TV has little memory to spare.
+     */
+    private void loadWallpaper() {
+        ImageView view = findViewById(R.id.wallpaper);
+        java.io.File dir = getExternalFilesDir(null);
+        java.io.File f = dir == null ? null : new java.io.File(dir, "wallpaper.jpg");
+        long stamp = f != null && f.isFile() ? f.lastModified() : 0;
+        if (stamp == wallpaperStamp) return;
+        wallpaperStamp = stamp;
+        if (stamp == 0) {
+            view.setImageDrawable(null);
+            view.setVisibility(View.GONE);
+            return;
+        }
+        android.graphics.BitmapFactory.Options o = new android.graphics.BitmapFactory.Options();
+        o.inJustDecodeBounds = true;
+        android.graphics.BitmapFactory.decodeFile(f.getPath(), o);
+        o.inSampleSize = 1;
+        while (o.outWidth / (o.inSampleSize * 2) >= 1920) o.inSampleSize *= 2;
+        o.inJustDecodeBounds = false;
+        o.inPreferredConfig = android.graphics.Bitmap.Config.RGB_565;
+        android.graphics.Bitmap bmp = android.graphics.BitmapFactory.decodeFile(f.getPath(), o);
+        view.setImageBitmap(bmp);
+        view.setVisibility(bmp == null ? View.GONE : View.VISIBLE);
     }
 
     private void addSeparator(LinearLayout rows) {

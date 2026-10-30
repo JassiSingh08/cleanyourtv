@@ -10,7 +10,11 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Outline;
+import android.graphics.LinearGradient;
+import android.graphics.Paint;
 import android.graphics.Rect;
+import android.graphics.Shader;
+import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.provider.Settings;
@@ -53,6 +57,8 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         final String pkg;
         final Drawable banner;
         final Drawable icon;
+        /** Set for an input tile (dock entry "input:<id>|<label>"): switches to that TV input. */
+        final String inputId;
         int ambient;
 
         Entry(String label, ComponentName component, Drawable banner, Drawable icon) {
@@ -61,6 +67,17 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             this.pkg = component.getPackageName();
             this.banner = banner;
             this.icon = icon;
+            this.inputId = null;
+        }
+
+        Entry(String favourite, String inputId, String label, Drawable banner) {
+            this.label = label;
+            // Not a real component: it only gives the tile a stable key for focus memory.
+            this.component = new ComponentName("input", inputId);
+            this.pkg = favourite;
+            this.banner = banner;
+            this.icon = null;
+            this.inputId = inputId;
         }
     }
 
@@ -100,6 +117,12 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             Drawable icon = ri.loadIcon(pm);
             String label = String.valueOf(ri.loadLabel(pm));
             fresh.add(new Entry(label, new ComponentName(pkg, ri.activityInfo.name), banner, icon));
+        }
+        for (String f : favourites) {
+            if (!f.startsWith("input:")) continue;
+            String[] parts = f.substring("input:".length()).split("\\|", 2);
+            String label = parts.length > 1 ? parts[1] : parts[0];
+            fresh.add(new Entry(f, parts[0], label, inputBanner(label)));
         }
         Collections.sort(fresh, (a, b) -> {
             int fa = favourites.indexOf(a.pkg), fb = favourites.indexOf(b.pkg);
@@ -146,6 +169,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         }
         h.card.setOnClickListener(v -> launch(e));
         h.card.setOnLongClickListener(v -> {
+            if (e.inputId != null) return true;
             Intent i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + e.pkg));
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             try {
@@ -157,6 +181,12 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     }
 
     private void launch(Entry e) {
+        if (e.inputId != null) {
+            if (!InputSwitch.open(ctx, e.inputId)) {
+                Toast.makeText(ctx, ctx.getString(R.string.cant_open, e.label), Toast.LENGTH_SHORT).show();
+            }
+            return;
+        }
         Intent i = new Intent(Intent.ACTION_MAIN)
                 .addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER)
                 .setComponent(e.component)
@@ -166,6 +196,25 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         } catch (Exception ex) {
             Toast.makeText(ctx, ctx.getString(R.string.cant_open, e.label), Toast.LENGTH_SHORT).show();
         }
+    }
+
+    /** A 16:9 banner in the console's colours with the label in Outfit, sized like app banners. */
+    private Drawable inputBanner(String label) {
+        int w = 320, h = 180;
+        Bitmap bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+        Canvas c = new Canvas(bmp);
+        Paint bg = new Paint();
+        bg.setShader(new LinearGradient(0, 0, w, h, 0xFF0070D1, 0xFF00246B, Shader.TileMode.CLAMP));
+        c.drawRect(0, 0, w, h, bg);
+        Paint text = new Paint(Paint.ANTI_ALIAS_FLAG);
+        text.setColor(Color.WHITE);
+        text.setTextAlign(Paint.Align.CENTER);
+        text.setTypeface(ctx.getResources().getFont(R.font.outfit));
+        text.setTextSize(64);
+        while (text.measureText(label) > w * 0.8f && text.getTextSize() > 24) text.setTextSize(text.getTextSize() - 2);
+        Paint.FontMetrics fm = text.getFontMetrics();
+        c.drawText(label, w / 2f, h / 2f - (fm.ascent + fm.descent) / 2f, text);
+        return new BitmapDrawable(ctx.getResources(), bmp);
     }
 
     @Override

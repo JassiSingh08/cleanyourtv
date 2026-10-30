@@ -19,6 +19,15 @@ printf '%s\n' \
   "rm -f /data/local/tmp/tvhome.apk" \
   "pm grant com.gathin.tvhome android.permission.ACCESS_FINE_LOCATION 2>/dev/null; echo location-granted" \
   "cmd package set-home-activity --user 0 com.gathin.tvhome/.MainActivity" \
-  "pm disable-user --user 0 $STOCK_LAUNCHER" \
   | "$PY" -I ../tools/tv.py --batch
+if [ "${HOME_GUARD:-0}" = 1 ]; then
+  # Google TV whose setup wizard outranks any sideloaded HOME (see HomeGuard.java): keep the stock
+  # launcher enabled and let the accessibility service redirect the Home button instead.
+  printf '%s\n' \
+    "settings put secure enabled_accessibility_services com.gathin.tvhome/.HomeGuard" \
+    "settings put secure accessibility_enabled 1" \
+    | "$PY" -I ../tools/tv.py --batch
+else
+  echo "pm disable-user --user 0 $STOCK_LAUNCHER" | "$PY" -I ../tools/tv.py --batch
+fi
 echo "Installed. Press Home on the remote to see it."

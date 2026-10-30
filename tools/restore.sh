@@ -15,6 +15,8 @@ export MSYS_NO_PATHCONV=1
   echo "pm enable $STOCK"
   # resolve the stock HOME component on the TV (Android 9 needs pkg/activity, not just pkg)
   echo "cmd package set-home-activity --user 0 \$(cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME $STOCK | tail -n 1)"
+  # the Google TV Home-button override (launcher/.../HomeGuard.java), if it was turned on
+  echo '[ "$(settings get secure enabled_accessibility_services)" = com.gathin.tvhome/.HomeGuard ] && settings delete secure enabled_accessibility_services; echo accessibility-checked'
   echo "settings put global window_animation_scale 1.0"
   echo "settings put global transition_animation_scale 1.0"
   echo "settings put global animator_duration_scale 1.0"

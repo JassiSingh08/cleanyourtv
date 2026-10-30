@@ -1,0 +1,58 @@
+# Skyworth SW-22AE NF Google TV (device SW6H, product SW6H_TG_NF, MediaTek m7332), India
+# Android 11 (Google TV), firmware RTT2.220103.001, 1.8 GB RAM
+#
+# Apply:   tools/disable.sh examples/skyworth-sw22ae-google-tv/debloat.txt
+# Undo:    tools/restore.sh examples/skyworth-sw22ae-google-tv/debloat.txt com.google.android.apps.tv.launcherx
+# Everything is DISABLED, not uninstalled. Comment out any line you want to keep.
+#
+# Stock launcher: com.google.android.apps.tv.launcherx (about 210 MB of RAM across two processes).
+# Live TV / HDMI app: com.smartdevice.livetv. Keep it, and keep com.mediatek.tvinput,
+# com.mediatek.tv.service, com.smartdevice.bleconnectservice (remote pairing and battery),
+# com.smartdevice.ipcontrol, com.mediatek.OledFuctionService and com.google.android.tv.assistant (mic LED).
+#
+# Known quirks on this firmware:
+# - Do NOT disable com.google.android.apps.tv.launcherx. The setup wizard (setupwraith) has a
+#   priority-1 HOME RecoveryActivity that shell can't disable, so with launcherx off Home shows a
+#   black screen. Disabling setupwraith itself soft-reboots the TV. Install the launcher with
+#   HOME_GUARD=1 launcher/build-and-install.sh instead: launcherx stays enabled and an accessibility
+#   service redirects the Home button.
+# - dreamx is disabled below; point the screensaver at the launcher's clock:
+#   settings put secure screensaver_components com.gathin.tvhome/.ClockDream
+# - screencap prints driver noise to stdout, so `adb exec-out screencap -p` gives a broken PNG.
+#   Use tools/shot.sh, which writes on the TV and pulls.
+
+# Skyworth content, ads and telemetry
+com.smartdevice.recommendation         # DailyPlay content rows; bundles coocaa "dataer" analytics
+# KEEP com.smartdevice.dailyshortcut: DailyHub is the GLOBAL_BUTTON receiver behind the remote's
+#   Input key (the Source / HDMI panel). Removing it leaves no way to switch to HDMI.
+com.smartdevice.dailymanage            # starts at boot, no user-facing purpose
+com.smartdevice.aftersale              # starts at boot, can install APKs (InstallAPPActivity)
+com.smartdevice.leanbacklauncher.customizer   # Skyworth tweaks to the stock home rows
+com.mediatek.android.leanbacklauncher.partnercustomizer
+
+# Retail demo / store mode
+com.smartdevice.epopplayer
+com.coocaa.demonow.lightining
+# KEEP fusion.android.tv.demo ("RetailDisplay"): despite the name it answers the mstar TV_INPUT_BUTTON intent.
+
+# Preloaded apps and services
+com.Smartdevice.emanual
+android.autoinstalls.config.google.gtvpai
+com.google.android.feedback
+com.google.android.marvin.talkback
+com.google.android.apps.nbu.smartconnect.tv   # Google data-saver/VPN helper
+com.google.android.apps.tv.dreamx      # ambient mode screensaver; the launcher ships a clock screensaver
+
+# Asked about (uncomment what you don't use)
+# com.google.android.katniss           # Google Assistant / voice search
+com.google.android.apps.mediashell   # Chromecast
+com.google.android.tv.remote.service # Google TV phone remote
+com.mediatek.androidbox              # Miracast screen mirroring
+com.smartdevice.dtv.icast            # iCast DLNA / AirPlay
+com.google.android.youtube.tvmusic
+com.google.android.videos
+com.google.android.play.games
+# com.smartdevice.duplebluetooth       # dual Bluetooth headphones app
+com.smartdevice.duplebluetooth       # Bluetooth Audio (dual headphones); normal Bluetooth pairing unaffected
+com.smartdevice.myapp                # "Daily Key" Skyworth shortcut app
+org.liskovsoft.androidtv.rukeyboard  # LeanKeyboard, preinstalled; Gboard is the keyboard
